@@ -1,0 +1,11 @@
+#!/bin/bash
+# apple-tv CLI wrapper — resolves symlinks and uses project venv
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || python3 -c "import os; print(os.path.realpath('$0'))")")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+VENV_PYTHON="$PROJECT_DIR/.venv/bin/python3"
+
+if [ -x "$VENV_PYTHON" ]; then
+    exec "$VENV_PYTHON" "$PROJECT_DIR/bin/_main.py" "$@"
+else
+    exec python3 "$PROJECT_DIR/bin/_main.py" "$@"
+fi

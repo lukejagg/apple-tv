@@ -1,0 +1,10 @@
+[project]
+name = "apple-tv"
+version = "0.1.0"
+description = "Control your Apple TV from the command line"
+requires-python = ">=3.12"
+dependencies = [
+    "pyatv>=0.15.0",
+    "pymobiledevice3>=9.0.0",
+    "rumps>=0.4.0",
+]
