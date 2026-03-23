@@ -4,45 +4,29 @@ Give your AI agent full control of your Apple TV.
 
 `apple-tv` is a CLI that lets AI coding agents (Claude Code, Cursor, Copilot, etc.) navigate your Apple TV, take screenshots of what's on screen, read the UI, control playback, and manage power — all programmatically. No remote needed.
 
-**What can an agent do with this?**
-- Browse your streaming apps, read what's on screen, and tell you what to watch
-- Navigate menus, search for shows, and start playback
-- Take screenshots to analyze your TV's UI state
-- Turn your TV on/off as part of automations
-- Build workflows that react to what's currently playing
-
-It also works great as a standalone CLI for humans who want to control their Apple TV from the terminal.
-
-## How It Works
-
-Uses [pyatv](https://github.com/postlund/pyatv) (Media Remote Protocol) for remote control and [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) (Apple developer services) for screenshots.
-
-| Component | Purpose | Runs as |
-|-----------|---------|---------|
-| **CLI** (`bin/apple-tv`) | Remote control, screenshots, setup | User |
-| **Daemon** (`com.apple-tv.daemon`) | Maintains tunnel for screenshots, HTTP API on `:7654` | Root (LaunchDaemon) |
-| **Menu bar** (`com.apple-tv.menubar`) | 📺 status display + quick actions in macOS menu bar | User (LaunchAgent) |
-
-Remote control goes through pyatv — no root needed. Screenshots require the daemon because pymobiledevice3 needs a TUN interface for Apple's developer services tunnel.
-
-## Quick Start
+## Install the Skill
 
 ```bash
-git clone https://github.com/lukejagg/apple-tv.git
-cd apple-tv
+npx skills add lukejagg/apple-tv
+```
+
+## Setup
+
+```bash
+git clone https://github.com/lukejagg/apple-tv.git ~/Projects/apple-tv
+cd ~/Projects/apple-tv
 uv sync
 ./bin/apple-tv setup      # discover + pair (interactive, ~2 min)
 ./bin/apple-tv install    # start background daemon + menu bar
 ```
 
-See [INSTALL.md](INSTALL.md) for detailed setup instructions including Developer Mode setup for screenshots.
+See [INSTALL.md](INSTALL.md) for detailed setup instructions including Developer Mode for screenshots.
 
 ## Usage
 
 ```bash
 # Power
-apple-tv on
-apple-tv off
+apple-tv on / off
 
 # Navigation
 apple-tv up / down / left / right
@@ -70,15 +54,13 @@ apple-tv start / stop / restart
 apple-tv install / uninstall
 ```
 
-## Agent Integration
+## What Can an Agent Do With This?
 
-### Claude Code Skill
-
-This repo ships as a [Claude Code skill](SKILL.md). Install it so Claude can control your TV:
-
-```bash
-npx skills add lukejagg/apple-tv
-```
+- Browse your streaming apps, read what's on screen, and tell you what to watch
+- Navigate menus, search for shows, and start playback
+- Take screenshots to analyze your TV's UI state
+- Turn your TV on/off as part of automations
+- Build workflows that react to what's currently playing
 
 ### Example: Agent browsing Crunchyroll
 
@@ -97,9 +79,21 @@ Agent runs:
 
 The agent uses `screenshot` + vision to see the TV, and navigation commands to interact with it. No API needed — it controls the TV the same way a human would with a remote.
 
+## How It Works
+
+| Component | Purpose | Runs as |
+|-----------|---------|---------|
+| **CLI** (`bin/apple-tv`) | Remote control, screenshots, setup | User |
+| **Daemon** (`com.apple-tv.daemon`) | Maintains tunnel for screenshots, HTTP API on `:7654` | Root (LaunchDaemon) |
+| **Menu bar** (`com.apple-tv.menubar`) | 📺 status display + quick actions in macOS menu bar | User (LaunchAgent) |
+
+Uses [pyatv](https://github.com/postlund/pyatv) (Media Remote Protocol) for remote control and [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) (Apple developer services) for screenshots.
+
+Remote control goes through pyatv — no root needed. Screenshots require the daemon because pymobiledevice3 needs a TUN interface for Apple's developer services tunnel.
+
 ## Requirements
 
-- macOS 13+ (uses CoreBluetooth, launchd)
+- macOS 13+ (uses launchd, CoreBluetooth)
 - [uv](https://docs.astral.sh/uv/)
 - Apple TV 4K on the same local network
 - Xcode (for initial developer pairing, required for screenshots only)
