@@ -1,43 +1,50 @@
 #!/bin/bash
 set -e
 
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_URL="https://github.com/lukejagg/apple-tv.git"
+INSTALL_DIR="${APPLE_TV_DIR:-$HOME/Projects/apple-tv}"
 LINK_DIR="${HOME}/.local/bin"
 
 echo "=== apple-tv install ==="
 echo
 
-# 1. Install dependencies
-echo "Installing dependencies..."
-if command -v uv &>/dev/null; then
-    (cd "$REPO_DIR" && uv sync)
-else
-    echo "Error: uv is not installed. Install it: brew install uv"
+# 1. Check for uv
+if ! command -v uv &>/dev/null; then
+    echo "Error: uv is not installed."
+    echo "  brew install uv"
+    echo "  or: curl -LsSf https://astral.sh/uv/install.sh | sh"
     exit 1
 fi
 
-# 2. Symlink to PATH
-echo
-mkdir -p "$LINK_DIR"
-ln -sf "$REPO_DIR/bin/apple-tv" "$LINK_DIR/apple-tv"
-echo "Linked: $LINK_DIR/apple-tv → $REPO_DIR/bin/apple-tv"
+# 2. Clone or update repo
+if [ -d "$INSTALL_DIR/.git" ]; then
+    echo "Updating $INSTALL_DIR..."
+    (cd "$INSTALL_DIR" && git pull --ff-only 2>/dev/null || true)
+else
+    echo "Cloning to $INSTALL_DIR..."
+    mkdir -p "$(dirname "$INSTALL_DIR")"
+    git clone "$REPO_URL" "$INSTALL_DIR"
+fi
 
-# 3. Verify PATH
+# 3. Install dependencies
+echo "Installing dependencies..."
+(cd "$INSTALL_DIR" && uv sync)
+
+# 4. Symlink to PATH
+mkdir -p "$LINK_DIR"
+ln -sf "$INSTALL_DIR/bin/apple-tv" "$LINK_DIR/apple-tv"
+echo "Linked: $LINK_DIR/apple-tv"
+
+# 5. Verify PATH
 if ! echo "$PATH" | tr ':' '\n' | grep -q "$LINK_DIR"; then
     echo
     echo "Warning: $LINK_DIR is not on your PATH."
-    echo "Add this to your ~/.zshrc:"
+    echo "Add to your shell profile:"
     echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
 
-# 4. Verify it works
 echo
-if command -v apple-tv &>/dev/null; then
-    echo "✓ apple-tv is on your PATH"
-else
-    echo "Open a new terminal and run: apple-tv --help"
-fi
-
+echo "✓ apple-tv installed"
 echo
 echo "Next steps:"
 echo "  apple-tv setup     # discover + pair your Apple TV"

@@ -4,18 +4,27 @@ Give your AI agent full control of your Apple TV.
 
 `apple-tv` is a CLI that lets AI coding agents (Claude Code, Cursor, Copilot, etc.) navigate your Apple TV, take screenshots of what's on screen, read the UI, control playback, and manage power — all programmatically. No remote needed.
 
-## Install the Skill
+## Installation
+
+### CLI
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lukejagg/apple-tv/main/install.sh | bash
+```
+
+This clones the repo, installs dependencies with `uv`, and adds `apple-tv` to your PATH.
+
+### Agent Skill
 
 ```bash
 npx skills add lukejagg/apple-tv
 ```
 
-## Setup
+Adds the skill to Claude Code, Cursor, Copilot, and 40+ other agents so they know how to use the CLI.
+
+### After installing
 
 ```bash
-git clone https://github.com/lukejagg/apple-tv.git ~/Projects/apple-tv
-cd ~/Projects/apple-tv
-./install.sh              # install deps + add to PATH
 apple-tv setup            # discover + pair (interactive, ~2 min)
 apple-tv install          # start background daemon + menu bar
 ```
@@ -83,7 +92,7 @@ The agent uses `screenshot` + vision to see the TV, and navigation commands to i
 
 | Component | Purpose | Runs as |
 |-----------|---------|---------|
-| **CLI** (`bin/apple-tv`) | Remote control, screenshots, setup | User |
+| **CLI** (`apple-tv`) | Remote control, screenshots, setup | User |
 | **Daemon** (`com.apple-tv.daemon`) | Maintains tunnel for screenshots, HTTP API on `:7654` | Root (LaunchDaemon) |
 | **Menu bar** (`com.apple-tv.menubar`) | 📺 status display + quick actions in macOS menu bar | User (LaunchAgent) |
 
