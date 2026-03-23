@@ -15,9 +15,9 @@ npx skills add lukejagg/apple-tv
 ```bash
 git clone https://github.com/lukejagg/apple-tv.git ~/Projects/apple-tv
 cd ~/Projects/apple-tv
-uv sync
-./bin/apple-tv setup      # discover + pair (interactive, ~2 min)
-./bin/apple-tv install    # start background daemon + menu bar
+./install.sh              # install deps + add to PATH
+apple-tv setup            # discover + pair (interactive, ~2 min)
+apple-tv install          # start background daemon + menu bar
 ```
 
 See [INSTALL.md](INSTALL.md) for detailed setup instructions including Developer Mode for screenshots.
