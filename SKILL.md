@@ -6,140 +6,91 @@ argument-hint: [command like screenshot, on, off, up, down, select, status]
 
 # Apple TV Control
 
-CLI tool for controlling Apple TV over the local network. Combines pyatv (remote control) and pymobiledevice3 (screenshots via developer services tunnel).
+Control an Apple TV over the local network using the `apple-tv` CLI. Requires the CLI to be installed and on PATH — see https://github.com/lukejagg/apple-tv for setup.
 
-## Quick Reference
-
-```bash
-# Remote control
-apple-tv on                    # Wake
-apple-tv off                   # Sleep
-apple-tv up / down / left / right  # Navigate
-apple-tv select                # Confirm
-apple-tv menu                  # Back
-apple-tv home                  # Home screen
-apple-tv play / pause / playpause
-apple-tv next / prev
-apple-tv volume-up / volume-down
-
-# Screenshots (requires daemon running)
-apple-tv screenshot            # Save to default location
-apple-tv screenshot /tmp/tv.png  # Save to specific path
-
-# Status
-apple-tv status                # Power state, now playing
-
-# Service management
-apple-tv start                 # Start daemon + menu bar
-apple-tv stop                  # Stop both
-apple-tv restart               # Restart both
-apple-tv install               # Install LaunchDaemon + LaunchAgent (persistent)
-apple-tv uninstall             # Remove everything
-
-# Diagnostics
-apple-tv doctor                # Check everything is configured and working
-apple-tv rediscover            # Update Apple TV IP if it changed
-apple-tv logs                  # Tail daemon and menu bar logs
-```
-
-## Architecture
-
-Three components, one CLI:
-
-1. **LaunchDaemon** (`com.apple-tv.daemon`) — runs as root, maintains pymobiledevice3 tunnel for screenshots, serves HTTP API on `127.0.0.1:7654`
-2. **LaunchAgent** (`com.apple-tv.menubar`) — menu bar app (📺), polls daemon for status, quick actions
-3. **CLI** (`bin/apple-tv`) — for remote control uses pyatv directly (no root needed), for screenshots hits the daemon API
-
-Remote control commands (navigation, power, playback) go through **pyatv** and do NOT need the daemon. Only screenshots need the daemon (because pymobiledevice3 requires root for the TUN tunnel).
-
-## Setup (First Time)
-
-### Prerequisites
-
-Install dependencies with uv:
-```bash
-uv sync
-```
-
-### Step 1: Remote Control Pairing (pyatv)
+## Step 1: Check if apple-tv is available
 
 ```bash
-apple-tv setup
+apple-tv doctor
 ```
 
-This discovers your Apple TV, then pairs the Companion and AirPlay protocols. A PIN will appear on the TV for each — enter it when prompted. Credentials are saved to `~/.config/apple-tv/credentials.json`.
+If this fails, the CLI isn't installed. Tell the user to follow the setup at https://github.com/lukejagg/apple-tv.
 
-### Step 2: Screenshot Pairing (pymobiledevice3)
+## Step 2: Use the CLI
 
-Screenshots require Apple's developer services protocol, which needs extra setup:
-
-1. **Enable Developer Mode** on Apple TV: Settings → Privacy & Security → Developer Mode → ON (reboots)
-2. **Pair via Xcode** (optional but helps): Open Xcode → Window → Devices and Simulators → your Apple TV should appear
-3. **Pair pymobiledevice3**: The `apple-tv setup` command handles this. Navigate to Settings → Remotes and Devices → Remote App and Devices on the Apple TV, then follow the prompts.
-
-**Known issue:** pymobiledevice3's Bonjour discovery often fails to find Apple TVs. The setup script works around this by using macOS native `dns-sd` to discover the device and connecting directly by IP.
-
-### Step 3: Install Background Services
+### Remote Control
 
 ```bash
-apple-tv install
+apple-tv on                          # Power on / wake
+apple-tv off                         # Power off / sleep
+apple-tv up                          # Navigate up
+apple-tv down                        # Navigate down
+apple-tv left                        # Navigate left
+apple-tv right                       # Navigate right
+apple-tv select                      # Confirm / press OK
+apple-tv menu                        # Go back
+apple-tv home                        # Home screen
+apple-tv play                        # Play
+apple-tv pause                       # Pause
+apple-tv playpause                   # Toggle play/pause
+apple-tv next                        # Next track
+apple-tv prev                        # Previous track
+apple-tv volume-up                   # Volume up
+apple-tv volume-down                 # Volume down
 ```
 
-This creates:
-- `/Library/LaunchDaemons/com.apple-tv.daemon.plist` (root, auto-starts on boot)
-- `~/Library/LaunchAgents/com.apple-tv.menubar.plist` (user, auto-starts on login)
+### Screenshots
 
-Asks for sudo password once. After this, everything just works.
+```bash
+apple-tv screenshot                  # Save to default location
+apple-tv screenshot /tmp/tv.png      # Save to specific path
+```
 
-> The pymobiledevice3 buffer size is automatically patched at runtime — no manual step needed.
+Use screenshots to **see what's on the TV screen**. Read the screenshot image to understand the current UI state, then send navigation commands to interact with it.
 
-## Configuration
+### Status
 
-All config lives in `~/.config/apple-tv/`:
+```bash
+apple-tv status                      # Power state + now playing info
+```
 
-- `config.json` — device IP, name, pairing IDs, screenshot directory
-- `credentials.json` — pyatv Companion + AirPlay credentials
+### Diagnostics
 
-## Daemon API
+```bash
+apple-tv doctor                      # Verify config, pairing, network, daemon
+apple-tv rediscover                  # Update Apple TV IP if it changed (DHCP)
+apple-tv logs                        # Tail daemon and menu bar logs
+apple-tv restart                     # Restart background services
+```
 
-The daemon exposes these endpoints on `http://127.0.0.1:7654`:
+## How to Navigate the Apple TV
+
+The Apple TV UI works like a grid. Use `up`/`down`/`left`/`right` to move focus, `select` to press, and `menu` to go back.
+
+**Pattern for browsing apps:**
+1. `apple-tv home` — go to home screen
+2. `apple-tv screenshot` — see what's on screen
+3. Navigate to the app with arrow commands
+4. `apple-tv select` — open the app
+5. `apple-tv screenshot` — see the app's UI
+6. Continue navigating + screenshotting
+
+**Important:** Always `sleep 1` between a navigation command and a screenshot — the UI needs time to update.
+
+**Scrolling:** The Apple TV has no scroll command. Use `down`/`right` repeatedly to scroll through lists. Take screenshots after each move to track position.
+
+## Daemon API (Advanced)
+
+The background daemon runs on `http://127.0.0.1:7654`. You can use it directly:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /` | Health check |
-| `GET /status` | Power state + now playing |
-| `GET /screenshot` | Take screenshot, return PNG bytes |
-| `GET /screenshot?nosave=1` | Return PNG bytes without saving to disk |
-| `GET /remote?action=<action>` | Send remote command (up/down/select/home/on/off/etc) |
-
-## Logs
-
-- Daemon: `/tmp/apple-tv-daemon.log`
-- Menu bar: `/tmp/apple-tv-menubar.log`
+| `GET /status` | Power state + now playing (JSON) |
+| `GET /screenshot?nosave=1` | Take screenshot, return raw PNG bytes |
+| `GET /remote?action=<cmd>` | Send remote command |
 
 ## Troubleshooting
 
-- **Screenshot fails with "Device is not connected"**: Apple TV might be asleep. Wake it first with `apple-tv on`.
-- **Screenshot fails with "ConnectionTerminatedError"**: Pairing may have expired. Re-run `apple-tv setup` for the pymobiledevice3 step.
-- **"Apple TV not found"**: Device IP may have changed. Re-run `apple-tv setup` or update `~/.config/apple-tv/config.json`.
-- **Menu bar not visible**: Check if it's behind the notch or in the overflow area. Run `apple-tv restart` to cycle it.
-
-## Project Structure
-
-```
-apple-tv/
-├── app/
-│   ├── config.py       # Configuration management
-│   ├── daemon.py       # HTTP daemon (root, screenshots + remote API)
-│   ├── install.py      # LaunchDaemon/Agent install/uninstall
-│   ├── menubar.py      # macOS menu bar app (rumps)
-│   ├── remote.py       # pyatv remote control
-│   ├── screenshot.py   # pymobiledevice3 screenshot
-│   └── setup.py        # Interactive pairing/discovery
-├── bin/
-│   └── apple-tv        # CLI entry point
-└── .claude/
-    └── skills/
-        └── apple-tv/
-            └── SKILL.md
-```
+- **"Apple TV not found"**: IP may have changed. Run `apple-tv rediscover`.
+- **Screenshot fails**: Daemon may not be running. Run `apple-tv restart`.
+- **TV not responding**: It might be asleep. Run `apple-tv on` first.
